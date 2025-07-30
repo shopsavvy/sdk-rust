@@ -1,0 +1,6 @@
+/Users/jakemarsh/monolith/shopsavvy-sdk-rust/target/package/shopsavvy-sdk-1.0.0/target/debug/deps/yoke_derive-bf1125c5a2382474.d: /Users/jakemarsh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/yoke-derive-0.8.0/src/lib.rs /Users/jakemarsh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/yoke-derive-0.8.0/src/visitor.rs
+
+/Users/jakemarsh/monolith/shopsavvy-sdk-rust/target/package/shopsavvy-sdk-1.0.0/target/debug/deps/libyoke_derive-bf1125c5a2382474.dylib: /Users/jakemarsh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/yoke-derive-0.8.0/src/lib.rs /Users/jakemarsh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/yoke-derive-0.8.0/src/visitor.rs
+
+/Users/jakemarsh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/yoke-derive-0.8.0/src/lib.rs:
+/Users/jakemarsh/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/yoke-derive-0.8.0/src/visitor.rs:

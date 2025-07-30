@@ -1,0 +1,1 @@
+/Users/jakemarsh/monolith/shopsavvy-sdk-rust/target/debug/libshopsavvy_sdk.rlib: /Users/jakemarsh/monolith/shopsavvy-sdk-rust/src/client.rs /Users/jakemarsh/monolith/shopsavvy-sdk-rust/src/error.rs /Users/jakemarsh/monolith/shopsavvy-sdk-rust/src/lib.rs /Users/jakemarsh/monolith/shopsavvy-sdk-rust/src/types.rs

@@ -1,0 +1,24 @@
+[package]
+name = "shopsavvy-sdk"
+version = "1.0.0"
+authors = ["ShopSavvy by Monolith Technologies, Inc."]
+edition = "2021"
+description = "Official Rust SDK for ShopSavvy Data API - Access product data, pricing, and price history"
+homepage = "https://shopsavvy.com/data"
+repository = "https://github.com/shopsavvy/sdk-rust"
+license = "MIT"
+keywords = ["shopsavvy", "product-data", "pricing", "e-commerce", "api-client"]
+categories = ["api-bindings", "web-programming::http-client"]
+readme = "README.md"
+
+[dependencies]
+reqwest = { version = "0.11", features = ["json"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+tokio = { version = "1.0", features = ["full"] }
+thiserror = "1.0"
+url = "2.2"
+regex = "1.7"
+
+[dev-dependencies]
+tokio-test = "0.4"
