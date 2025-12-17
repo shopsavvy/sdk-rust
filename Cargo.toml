@@ -10,6 +10,7 @@ license = "MIT"
 keywords = ["shopsavvy", "product-data", "pricing", "e-commerce", "api-client"]
 categories = ["api-bindings", "web-programming::http-client"]
 readme = "README.md"
+exclude = ["target/"]
 
 [dependencies]
 reqwest = { version = "0.11", features = ["json"] }
