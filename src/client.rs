@@ -5,7 +5,9 @@ use crate::{
 use regex::Regex;
 use reqwest::{header::HeaderMap, Client as HttpClient};
 use serde_json::Value;
-use std::collections::HashMap;
+
+/// SDK version
+pub const VERSION: &str = "1.0.1";
 
 /// ShopSavvy Data API client
 #[derive(Debug, Clone)]
@@ -16,17 +18,17 @@ pub struct Client {
 
 impl Client {
     /// Create a new ShopSavvy Data API client
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `api_key` - Your ShopSavvy API key
-    /// 
+    ///
     /// # Example
-    /// 
-    /// ```rust
-    /// use shopsavvy_data_api::Client;
-    /// 
-    /// let client = Client::new("ss_live_your_api_key_here")?;
+    ///
+    /// ```rust,no_run
+    /// use shopsavvy_sdk::Client;
+    ///
+    /// let client = Client::new("ss_live_your_api_key_here").unwrap();
     /// ```
     pub fn new(api_key: impl Into<String>) -> Result<Self> {
         let config = Config::new(api_key);
@@ -34,20 +36,20 @@ impl Client {
     }
 
     /// Create a new client with custom configuration
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `config` - Client configuration
-    /// 
+    ///
     /// # Example
-    /// 
-    /// ```rust
-    /// use shopsavvy_data_api::{Client, Config};
+    ///
+    /// ```rust,no_run
+    /// use shopsavvy_sdk::{Client, Config};
     /// use std::time::Duration;
-    /// 
+    ///
     /// let config = Config::new("ss_live_your_api_key_here")
     ///     .with_timeout(Duration::from_secs(60));
-    /// let client = Client::with_config(config)?;
+    /// let client = Client::with_config(config).unwrap();
     /// ```
     pub fn with_config(config: Config) -> Result<Self> {
         // Validate API key
@@ -64,7 +66,7 @@ impl Client {
         let mut headers = HeaderMap::new();
         headers.insert("Authorization", format!("Bearer {}", config.api_key).parse().unwrap());
         headers.insert("Content-Type", "application/json".parse().unwrap());
-        headers.insert("User-Agent", "ShopSavvy-Rust-SDK/1.0.0".parse().unwrap());
+        headers.insert("User-Agent", format!("ShopSavvy-Rust-SDK/{}", VERSION).parse().unwrap());
 
         // Create HTTP client
         let client = HttpClient::builder()
@@ -81,13 +83,13 @@ impl Client {
         T: for<'de> serde::Deserialize<'de>,
     {
         let url = format!("{}{}", self.config.base_url, endpoint);
-        
+
         let mut request = self.client.request(method, &url);
-        
+
         if let Some(params) = params {
             request = request.query(params);
         }
-        
+
         if let Some(body) = body {
             request = request.json(body);
         }
@@ -107,86 +109,155 @@ impl Client {
 
         let response_text = response.text().await?;
         let api_response: ApiResponse<T> = serde_json::from_str(&response_text)?;
-        
+
         Ok(api_response)
     }
 
-    /// Look up product details by identifier
-    /// 
+    /// Make a request and return raw result (for ProductSearchResult)
+    async fn request_raw<T>(&self, method: reqwest::Method, endpoint: &str, params: Option<&[(&str, &str)]>) -> Result<T>
+    where
+        T: for<'de> serde::Deserialize<'de>,
+    {
+        let url = format!("{}{}", self.config.base_url, endpoint);
+
+        let mut request = self.client.request(method, &url);
+
+        if let Some(params) = params {
+            request = request.query(params);
+        }
+
+        let response = request.send().await?;
+        let status_code = response.status().as_u16();
+
+        if !response.status().is_success() {
+            let error_text = response.text().await.unwrap_or_default();
+            let error_message = if let Ok(error_json) = serde_json::from_str::<serde_json::Value>(&error_text) {
+                error_json["error"].as_str().unwrap_or(&error_text).to_string()
+            } else {
+                error_text
+            };
+            return Err(Error::from_status_code(status_code, error_message));
+        }
+
+        let response_text = response.text().await?;
+        let result: T = serde_json::from_str(&response_text)?;
+
+        Ok(result)
+    }
+
+    /// Search for products by keyword
+    ///
     /// # Arguments
-    /// 
+    ///
+    /// * `query` - Search query or keyword
+    /// * `limit` - Optional maximum number of results
+    /// * `offset` - Optional pagination offset
+    ///
+    /// # Example
+    ///
+    /// ```rust,ignore
+    /// let results = client.search_products("iphone 15 pro", Some(10), None).await?;
+    /// for product in results.data {
+    ///     println!("Product: {}", product.title);
+    /// }
+    /// ```
+    pub async fn search_products(&self, query: &str, limit: Option<i32>, offset: Option<i32>) -> Result<ProductSearchResult> {
+        let mut params = vec![("q", query)];
+
+        let limit_str: String;
+        if let Some(l) = limit {
+            limit_str = l.to_string();
+            params.push(("limit", &limit_str));
+        }
+
+        let offset_str: String;
+        if let Some(o) = offset {
+            offset_str = o.to_string();
+            params.push(("offset", &offset_str));
+        }
+
+        self.request_raw(reqwest::Method::GET, "/products/search", Some(&params)).await
+    }
+
+    /// Look up product details by identifier
+    ///
+    /// # Arguments
+    ///
     /// * `identifier` - Product identifier (barcode, ASIN, URL, model number, or ShopSavvy product ID)
     /// * `format` - Optional output format
-    /// 
+    ///
     /// # Example
-    /// 
-    /// ```rust
+    ///
+    /// ```rust,ignore
     /// let product = client.get_product_details("012345678901", None).await?;
-    /// println!("Product: {}", product.data.name);
+    /// println!("Product: {}", product.data[0].title);
     /// ```
-    pub async fn get_product_details(&self, identifier: &str, format: Option<OutputFormat>) -> Result<ApiResponse<ProductDetails>> {
-        let mut params = vec![("identifier", identifier)];
-        
+    pub async fn get_product_details(&self, identifier: &str, format: Option<OutputFormat>) -> Result<ApiResponse<Vec<ProductDetails>>> {
+        let mut params = vec![("ids", identifier)];
+
         let format_str;
         if let Some(fmt) = format {
             format_str = fmt.to_string();
             params.push(("format", &format_str));
         }
 
-        self.request(reqwest::Method::GET, "/products/details", Some(&params), None).await
+        self.request(reqwest::Method::GET, "/products", Some(&params), None).await
     }
 
     /// Look up details for multiple products
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `identifiers` - List of product identifiers
     /// * `format` - Optional output format
-    /// 
+    ///
     /// # Example
-    /// 
-    /// ```rust
+    ///
+    /// ```rust,ignore
     /// let products = client.get_product_details_batch(
-    ///     &["012345678901", "B08N5WRWNW"], 
+    ///     &["012345678901", "B08N5WRWNW"],
     ///     None
     /// ).await?;
     /// ```
     pub async fn get_product_details_batch(&self, identifiers: &[&str], format: Option<OutputFormat>) -> Result<ApiResponse<Vec<ProductDetails>>> {
         let identifiers_str = identifiers.join(",");
-        let mut params = vec![("identifiers", identifiers_str.as_str())];
-        
+        let mut params = vec![("ids", identifiers_str.as_str())];
+
         let format_str;
         if let Some(fmt) = format {
             format_str = fmt.to_string();
             params.push(("format", &format_str));
         }
 
-        self.request(reqwest::Method::GET, "/products/details", Some(&params), None).await
+        self.request(reqwest::Method::GET, "/products", Some(&params), None).await
     }
 
     /// Get current offers for a product
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `identifier` - Product identifier
     /// * `retailer` - Optional retailer to filter by
     /// * `format` - Optional output format
-    /// 
+    ///
     /// # Example
-    /// 
-    /// ```rust
-    /// let offers = client.get_current_offers("012345678901", None, None).await?;
-    /// for offer in offers.data {
-    ///     println!("{}: ${}", offer.retailer, offer.price);
+    ///
+    /// ```rust,ignore
+    /// let result = client.get_current_offers("012345678901", None, None).await?;
+    /// for product in result.data {
+    ///     println!("Product: {}", product.title);
+    ///     for offer in product.offers {
+    ///         println!("  {}: ${:?}", offer.retailer, offer.price);
+    ///     }
     /// }
     /// ```
-    pub async fn get_current_offers(&self, identifier: &str, retailer: Option<&str>, format: Option<OutputFormat>) -> Result<ApiResponse<Vec<Offer>>> {
-        let mut params = vec![("identifier", identifier)];
-        
+    pub async fn get_current_offers(&self, identifier: &str, retailer: Option<&str>, format: Option<OutputFormat>) -> Result<ApiResponse<Vec<ProductWithOffers>>> {
+        let mut params = vec![("ids", identifier)];
+
         if let Some(ret) = retailer {
             params.push(("retailer", ret));
         }
-        
+
         let format_str;
         if let Some(fmt) = format {
             format_str = fmt.to_string();
@@ -197,14 +268,14 @@ impl Client {
     }
 
     /// Get current offers for multiple products
-    pub async fn get_current_offers_batch(&self, identifiers: &[&str], retailer: Option<&str>, format: Option<OutputFormat>) -> Result<ApiResponse<HashMap<String, Vec<Offer>>>> {
+    pub async fn get_current_offers_batch(&self, identifiers: &[&str], retailer: Option<&str>, format: Option<OutputFormat>) -> Result<ApiResponse<Vec<ProductWithOffers>>> {
         let identifiers_str = identifiers.join(",");
-        let mut params = vec![("identifiers", identifiers_str.as_str())];
-        
+        let mut params = vec![("ids", identifiers_str.as_str())];
+
         if let Some(ret) = retailer {
             params.push(("retailer", ret));
         }
-        
+
         let format_str;
         if let Some(fmt) = format {
             format_str = fmt.to_string();
@@ -215,60 +286,60 @@ impl Client {
     }
 
     /// Get price history for a product
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `identifier` - Product identifier
     /// * `start_date` - Start date (YYYY-MM-DD format)
     /// * `end_date` - End date (YYYY-MM-DD format)
     /// * `retailer` - Optional retailer to filter by
     /// * `format` - Optional output format
-    /// 
+    ///
     /// # Example
-    /// 
-    /// ```rust
+    ///
+    /// ```rust,ignore
     /// let history = client.get_price_history(
-    ///     "012345678901", 
-    ///     "2024-01-01", 
-    ///     "2024-01-31", 
-    ///     None, 
+    ///     "012345678901",
+    ///     "2024-01-01",
+    ///     "2024-01-31",
+    ///     None,
     ///     None
     /// ).await?;
     /// ```
     pub async fn get_price_history(&self, identifier: &str, start_date: &str, end_date: &str, retailer: Option<&str>, format: Option<OutputFormat>) -> Result<ApiResponse<Vec<OfferWithHistory>>> {
         let mut params = vec![
-            ("identifier", identifier),
+            ("ids", identifier),
             ("start_date", start_date),
             ("end_date", end_date),
         ];
-        
+
         if let Some(ret) = retailer {
             params.push(("retailer", ret));
         }
-        
+
         let format_str;
         if let Some(fmt) = format {
             format_str = fmt.to_string();
             params.push(("format", &format_str));
         }
 
-        self.request(reqwest::Method::GET, "/products/history", Some(&params), None).await
+        self.request(reqwest::Method::GET, "/products/offers/history", Some(&params), None).await
     }
 
     /// Schedule product monitoring
-    /// 
+    ///
     /// # Arguments
-    /// 
+    ///
     /// * `identifier` - Product identifier
     /// * `frequency` - How often to refresh
     /// * `retailer` - Optional retailer to monitor
-    /// 
+    ///
     /// # Example
-    /// 
-    /// ```rust
+    ///
+    /// ```rust,ignore
     /// let result = client.schedule_product_monitoring(
-    ///     "012345678901", 
-    ///     MonitoringFrequency::Daily, 
+    ///     "012345678901",
+    ///     MonitoringFrequency::Daily,
     ///     None
     /// ).await?;
     /// ```
@@ -277,7 +348,7 @@ impl Client {
             "identifier": identifier,
             "frequency": frequency.to_string(),
         });
-        
+
         if let Some(ret) = retailer {
             body["retailer"] = serde_json::Value::String(ret.to_string());
         }
@@ -292,7 +363,7 @@ impl Client {
             "identifiers": identifiers_str,
             "frequency": frequency.to_string(),
         });
-        
+
         if let Some(ret) = retailer {
             body["retailer"] = serde_json::Value::String(ret.to_string());
         }
@@ -301,10 +372,10 @@ impl Client {
     }
 
     /// Get all scheduled products
-    /// 
+    ///
     /// # Example
-    /// 
-    /// ```rust
+    ///
+    /// ```rust,ignore
     /// let scheduled = client.get_scheduled_products().await?;
     /// println!("Monitoring {} products", scheduled.data.len());
     /// ```
@@ -332,12 +403,12 @@ impl Client {
     }
 
     /// Get API usage information
-    /// 
+    ///
     /// # Example
-    /// 
-    /// ```rust
+    ///
+    /// ```rust,ignore
     /// let usage = client.get_usage().await?;
-    /// println!("Credits remaining: {}", usage.data.credits_remaining);
+    /// println!("Credits remaining: {}", usage.data.current_period.credits_remaining);
     /// ```
     pub async fn get_usage(&self) -> Result<ApiResponse<UsageInfo>> {
         self.request(reqwest::Method::GET, "/usage", None, None).await

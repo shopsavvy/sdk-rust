@@ -1,6 +1,6 @@
 [package]
 name = "shopsavvy-sdk"
-version = "1.0.0"
+version = "1.0.1"
 authors = ["ShopSavvy by Monolith Technologies, Inc."]
 edition = "2021"
 description = "Official Rust SDK for ShopSavvy Data API - Access product data, pricing, and price history"
