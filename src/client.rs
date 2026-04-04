@@ -428,6 +428,33 @@ impl Client {
         serde_json::from_str(&body).map_err(|e| super::error::ShopSavvyError::Parse(e.to_string()))
     }
 
+    /// Look up multiple products at once (sync for <=20, async for >20)
+    pub async fn batch_lookup(&self, identifiers: Vec<String>, include: Option<Vec<String>>) -> Result<serde_json::Value> {
+        let url = format!("{}/products/batch", self.base_url);
+        let mut body = serde_json::json!({ "identifiers": identifiers });
+        if let Some(inc) = include {
+            body["include"] = serde_json::json!(inc);
+        }
+        let response = self.client.post(&url)
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .header("User-Agent", format!("ShopSavvy-Rust-SDK/{}", VERSION))
+            .json(&body)
+            .send().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
+        let body = response.text().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
+        serde_json::from_str(&body).map_err(|e| super::error::ShopSavvyError::Parse(e.to_string()))
+    }
+
+    /// Poll for async batch job results
+    pub async fn get_batch_status(&self, batch_id: &str) -> Result<serde_json::Value> {
+        let url = format!("{}/batch/{}", self.base_url, batch_id);
+        let response = self.client.get(&url)
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .header("User-Agent", format!("ShopSavvy-Rust-SDK/{}", VERSION))
+            .send().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
+        let body = response.text().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
+        serde_json::from_str(&body).map_err(|e| super::error::ShopSavvyError::Parse(e.to_string()))
+    }
+
     /// Get TLDR review for a product
     pub async fn get_product_review(&self, identifier: &str) -> Result<super::types::ReviewResponse> {
         let url = format!("{}/products/reviews", self.base_url);
