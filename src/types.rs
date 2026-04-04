@@ -70,6 +70,15 @@ pub struct ProductDetails {
     pub model: Option<String>,
     pub mpn: Option<String>,
     pub color: Option<String>,
+    pub title_short: Option<String>,
+    pub slug: Option<String>,
+    pub description: Option<String>,
+    pub categories: Option<Vec<String>>,
+    pub attributes: Option<std::collections::HashMap<String, String>>,
+    pub rating: Option<serde_json::Value>,
+    pub score: Option<serde_json::Value>,
+    pub keywords: Option<Vec<String>>,
+    pub identifiers: Option<serde_json::Value>,
 }
 
 impl ProductDetails {
@@ -313,4 +322,54 @@ impl std::fmt::Display for MonitoringFrequency {
             MonitoringFrequency::Weekly => write!(f, "weekly"),
         }
     }
+}
+
+/// Shopping deal with expert grading
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct Deal {
+    pub path: String,
+    pub title: String,
+    pub subtitle: Option<String>,
+    pub description: Option<String>,
+    pub emoji: Option<String>,
+    pub grade: serde_json::Value,
+    pub pricing: serde_json::Value,
+    pub retailer: serde_json::Value,
+    pub product: Option<String>,
+    pub url: String,
+    pub image: Option<serde_json::Value>,
+    pub votes: serde_json::Value,
+    pub comment_count: i64,
+    pub tags: Option<Vec<serde_json::Value>>,
+    pub expires_at: Option<String>,
+    pub created_at: String,
+}
+
+/// Deals endpoint response
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct DealsResponse {
+    pub success: bool,
+    pub deals: Vec<Deal>,
+    pub pagination: serde_json::Value,
+    pub meta: Option<ApiMeta>,
+}
+
+/// TLDR product review
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct TLDRReview {
+    pub slug: String,
+    pub headline: String,
+    pub pros: Vec<String>,
+    pub cons: Vec<String>,
+    pub bottom_line: String,
+    pub scores: Option<serde_json::Value>,
+}
+
+/// Review endpoint response
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct ReviewResponse {
+    pub success: bool,
+    pub product: serde_json::Value,
+    pub review: Option<TLDRReview>,
+    pub meta: Option<ApiMeta>,
 }

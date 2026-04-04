@@ -7,7 +7,7 @@ use reqwest::{header::HeaderMap, Client as HttpClient};
 use serde_json::Value;
 
 /// SDK version
-pub const VERSION: &str = "1.0.1";
+pub const VERSION: &str = "1.1.0";
 
 /// ShopSavvy Data API client
 #[derive(Debug, Clone)]
@@ -412,5 +412,31 @@ impl Client {
     /// ```
     pub async fn get_usage(&self) -> Result<ApiResponse<UsageInfo>> {
         self.request(reqwest::Method::GET, "/usage", None, None).await
+    }
+
+    /// Browse current shopping deals
+    pub async fn get_deals(&self, params: Option<Vec<(&str, &str)>>) -> Result<super::types::DealsResponse> {
+        let url = format!("{}/deals", self.base_url);
+        let mut request = self.client.get(&url)
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .header("User-Agent", format!("ShopSavvy-Rust-SDK/{}", VERSION));
+        if let Some(p) = params {
+            request = request.query(&p);
+        }
+        let response = request.send().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
+        let body = response.text().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
+        serde_json::from_str(&body).map_err(|e| super::error::ShopSavvyError::Parse(e.to_string()))
+    }
+
+    /// Get TLDR review for a product
+    pub async fn get_product_review(&self, identifier: &str) -> Result<super::types::ReviewResponse> {
+        let url = format!("{}/products/reviews", self.base_url);
+        let response = self.client.get(&url)
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .header("User-Agent", format!("ShopSavvy-Rust-SDK/{}", VERSION))
+            .query(&[("id", identifier)])
+            .send().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
+        let body = response.text().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
+        serde_json::from_str(&body).map_err(|e| super::error::ShopSavvyError::Parse(e.to_string()))
     }
 }
