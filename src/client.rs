@@ -455,6 +455,43 @@ impl Client {
         serde_json::from_str(&body).map_err(|e| super::error::ShopSavvyError::Parse(e.to_string()))
     }
 
+    pub async fn create_webhook(&self, url: &str, events: Vec<String>) -> Result<serde_json::Value> {
+        let body = serde_json::json!({ "url": url, "events": events });
+        let response = self.client.post(&format!("{}/webhooks", self.base_url))
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .header("User-Agent", format!("ShopSavvy-Rust-SDK/{}", VERSION))
+            .json(&body).send().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
+        let body = response.text().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
+        serde_json::from_str(&body).map_err(|e| super::error::ShopSavvyError::Parse(e.to_string()))
+    }
+
+    pub async fn list_webhooks(&self) -> Result<serde_json::Value> {
+        let response = self.client.get(&format!("{}/webhooks", self.base_url))
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .header("User-Agent", format!("ShopSavvy-Rust-SDK/{}", VERSION))
+            .send().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
+        let body = response.text().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
+        serde_json::from_str(&body).map_err(|e| super::error::ShopSavvyError::Parse(e.to_string()))
+    }
+
+    pub async fn test_webhook(&self, webhook_id: &str) -> Result<serde_json::Value> {
+        let response = self.client.post(&format!("{}/webhooks/{}/test", self.base_url, webhook_id))
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .header("User-Agent", format!("ShopSavvy-Rust-SDK/{}", VERSION))
+            .send().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
+        let body = response.text().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
+        serde_json::from_str(&body).map_err(|e| super::error::ShopSavvyError::Parse(e.to_string()))
+    }
+
+    pub async fn delete_webhook(&self, webhook_id: &str) -> Result<serde_json::Value> {
+        let response = self.client.delete(&format!("{}/webhooks/{}", self.base_url, webhook_id))
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .header("User-Agent", format!("ShopSavvy-Rust-SDK/{}", VERSION))
+            .send().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
+        let body = response.text().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
+        serde_json::from_str(&body).map_err(|e| super::error::ShopSavvyError::Parse(e.to_string()))
+    }
+
     /// Get TLDR review for a product
     pub async fn get_product_review(&self, identifier: &str) -> Result<super::types::ReviewResponse> {
         let url = format!("{}/products/reviews", self.base_url);
