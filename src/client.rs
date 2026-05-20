@@ -423,9 +423,9 @@ impl Client {
         if let Some(p) = params {
             request = request.query(&p);
         }
-        let response = request.send().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
-        let body = response.text().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
-        serde_json::from_str(&body).map_err(|e| super::error::ShopSavvyError::Parse(e.to_string()))
+        let response = request.send().await.map_err(|e| super::error::Error::Network(e))?;
+        let body = response.text().await.map_err(|e| super::error::Error::Network(e))?;
+        serde_json::from_str(&body).map_err(|e| super::error::Error::Json(e))
     }
 
     /// Look up multiple products at once (sync for <=20, async for >20)
@@ -439,9 +439,9 @@ impl Client {
             .header("Authorization", format!("Bearer {}", self.api_key))
             .header("User-Agent", format!("ShopSavvy-Rust-SDK/{}", VERSION))
             .json(&body)
-            .send().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
-        let body = response.text().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
-        serde_json::from_str(&body).map_err(|e| super::error::ShopSavvyError::Parse(e.to_string()))
+            .send().await.map_err(|e| super::error::Error::Network(e))?;
+        let body = response.text().await.map_err(|e| super::error::Error::Network(e))?;
+        serde_json::from_str(&body).map_err(|e| super::error::Error::Json(e))
     }
 
     /// Poll for async batch job results
@@ -450,9 +450,9 @@ impl Client {
         let response = self.client.get(&url)
             .header("Authorization", format!("Bearer {}", self.api_key))
             .header("User-Agent", format!("ShopSavvy-Rust-SDK/{}", VERSION))
-            .send().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
-        let body = response.text().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
-        serde_json::from_str(&body).map_err(|e| super::error::ShopSavvyError::Parse(e.to_string()))
+            .send().await.map_err(|e| super::error::Error::Network(e))?;
+        let body = response.text().await.map_err(|e| super::error::Error::Network(e))?;
+        serde_json::from_str(&body).map_err(|e| super::error::Error::Json(e))
     }
 
     pub async fn create_webhook(&self, url: &str, events: Vec<String>) -> Result<serde_json::Value> {
@@ -460,27 +460,27 @@ impl Client {
         let response = self.client.post(&format!("{}/webhooks", self.base_url))
             .header("Authorization", format!("Bearer {}", self.api_key))
             .header("User-Agent", format!("ShopSavvy-Rust-SDK/{}", VERSION))
-            .json(&body).send().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
-        let body = response.text().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
-        serde_json::from_str(&body).map_err(|e| super::error::ShopSavvyError::Parse(e.to_string()))
+            .json(&body).send().await.map_err(|e| super::error::Error::Network(e))?;
+        let body = response.text().await.map_err(|e| super::error::Error::Network(e))?;
+        serde_json::from_str(&body).map_err(|e| super::error::Error::Json(e))
     }
 
     pub async fn list_webhooks(&self) -> Result<serde_json::Value> {
         let response = self.client.get(&format!("{}/webhooks", self.base_url))
             .header("Authorization", format!("Bearer {}", self.api_key))
             .header("User-Agent", format!("ShopSavvy-Rust-SDK/{}", VERSION))
-            .send().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
-        let body = response.text().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
-        serde_json::from_str(&body).map_err(|e| super::error::ShopSavvyError::Parse(e.to_string()))
+            .send().await.map_err(|e| super::error::Error::Network(e))?;
+        let body = response.text().await.map_err(|e| super::error::Error::Network(e))?;
+        serde_json::from_str(&body).map_err(|e| super::error::Error::Json(e))
     }
 
     pub async fn test_webhook(&self, webhook_id: &str) -> Result<serde_json::Value> {
         let response = self.client.post(&format!("{}/webhooks/{}/test", self.base_url, webhook_id))
             .header("Authorization", format!("Bearer {}", self.api_key))
             .header("User-Agent", format!("ShopSavvy-Rust-SDK/{}", VERSION))
-            .send().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
-        let body = response.text().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
-        serde_json::from_str(&body).map_err(|e| super::error::ShopSavvyError::Parse(e.to_string()))
+            .send().await.map_err(|e| super::error::Error::Network(e))?;
+        let body = response.text().await.map_err(|e| super::error::Error::Network(e))?;
+        serde_json::from_str(&body).map_err(|e| super::error::Error::Json(e))
     }
 
     /// Update a webhook. All fields are optional, but at least one of `url`,
@@ -493,9 +493,10 @@ impl Client {
         is_active: Option<bool>,
     ) -> Result<serde_json::Value> {
         if url.is_none() && events.is_none() && is_active.is_none() {
-            return Err(super::error::ShopSavvyError::Validation(
-                "update_webhook requires at least one of url, events, or is_active".to_string()
-            ));
+            return Err(super::error::Error::Validation {
+                message: "update_webhook requires at least one of url, events, or is_active".to_string(),
+                status_code: 400,
+            });
         }
         let mut body = serde_json::Map::new();
         if let Some(u) = url { body.insert("url".to_string(), serde_json::json!(u)); }
@@ -504,18 +505,18 @@ impl Client {
         let response = self.client.put(&format!("{}/webhooks/{}", self.base_url, webhook_id))
             .header("Authorization", format!("Bearer {}", self.api_key))
             .header("User-Agent", format!("ShopSavvy-Rust-SDK/{}", VERSION))
-            .json(&serde_json::Value::Object(body)).send().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
-        let body = response.text().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
-        serde_json::from_str(&body).map_err(|e| super::error::ShopSavvyError::Parse(e.to_string()))
+            .json(&serde_json::Value::Object(body)).send().await.map_err(|e| super::error::Error::Network(e))?;
+        let body = response.text().await.map_err(|e| super::error::Error::Network(e))?;
+        serde_json::from_str(&body).map_err(|e| super::error::Error::Json(e))
     }
 
     pub async fn delete_webhook(&self, webhook_id: &str) -> Result<serde_json::Value> {
         let response = self.client.delete(&format!("{}/webhooks/{}", self.base_url, webhook_id))
             .header("Authorization", format!("Bearer {}", self.api_key))
             .header("User-Agent", format!("ShopSavvy-Rust-SDK/{}", VERSION))
-            .send().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
-        let body = response.text().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
-        serde_json::from_str(&body).map_err(|e| super::error::ShopSavvyError::Parse(e.to_string()))
+            .send().await.map_err(|e| super::error::Error::Network(e))?;
+        let body = response.text().await.map_err(|e| super::error::Error::Network(e))?;
+        serde_json::from_str(&body).map_err(|e| super::error::Error::Json(e))
     }
 
     /// Get TLDR review for a product
@@ -525,8 +526,8 @@ impl Client {
             .header("Authorization", format!("Bearer {}", self.api_key))
             .header("User-Agent", format!("ShopSavvy-Rust-SDK/{}", VERSION))
             .query(&[("id", identifier)])
-            .send().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
-        let body = response.text().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
-        serde_json::from_str(&body).map_err(|e| super::error::ShopSavvyError::Parse(e.to_string()))
+            .send().await.map_err(|e| super::error::Error::Network(e))?;
+        let body = response.text().await.map_err(|e| super::error::Error::Network(e))?;
+        serde_json::from_str(&body).map_err(|e| super::error::Error::Json(e))
     }
 }
