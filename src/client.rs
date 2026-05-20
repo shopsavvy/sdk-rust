@@ -483,6 +483,32 @@ impl Client {
         serde_json::from_str(&body).map_err(|e| super::error::ShopSavvyError::Parse(e.to_string()))
     }
 
+    /// Update a webhook. All fields are optional, but at least one of `url`,
+    /// `events`, or `is_active` must be `Some(_)`.
+    pub async fn update_webhook(
+        &self,
+        webhook_id: &str,
+        url: Option<&str>,
+        events: Option<Vec<String>>,
+        is_active: Option<bool>,
+    ) -> Result<serde_json::Value> {
+        if url.is_none() && events.is_none() && is_active.is_none() {
+            return Err(super::error::ShopSavvyError::Validation(
+                "update_webhook requires at least one of url, events, or is_active".to_string()
+            ));
+        }
+        let mut body = serde_json::Map::new();
+        if let Some(u) = url { body.insert("url".to_string(), serde_json::json!(u)); }
+        if let Some(e) = events { body.insert("events".to_string(), serde_json::json!(e)); }
+        if let Some(a) = is_active { body.insert("is_active".to_string(), serde_json::json!(a)); }
+        let response = self.client.put(&format!("{}/webhooks/{}", self.base_url, webhook_id))
+            .header("Authorization", format!("Bearer {}", self.api_key))
+            .header("User-Agent", format!("ShopSavvy-Rust-SDK/{}", VERSION))
+            .json(&serde_json::Value::Object(body)).send().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
+        let body = response.text().await.map_err(|e| super::error::ShopSavvyError::Network(e.to_string()))?;
+        serde_json::from_str(&body).map_err(|e| super::error::ShopSavvyError::Parse(e.to_string()))
+    }
+
     pub async fn delete_webhook(&self, webhook_id: &str) -> Result<serde_json::Value> {
         let response = self.client.delete(&format!("{}/webhooks/{}", self.base_url, webhook_id))
             .header("Authorization", format!("Bearer {}", self.api_key))
