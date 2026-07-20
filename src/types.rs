@@ -76,6 +76,10 @@ pub struct ProductDetails {
     pub categories: Option<Vec<String>>,
     pub attributes: Option<std::collections::HashMap<String, String>>,
     pub rating: Option<serde_json::Value>,
+    /// Expert quality scores on a 0-1 scale (multiply by 10 or 100 for
+    /// display): "overall", "customer", "professional", plus an "aspects"
+    /// map keyed by free-form aspect names from the product's professional
+    /// reviews.
     pub score: Option<serde_json::Value>,
     pub keywords: Option<Vec<String>>,
     pub identifiers: Option<serde_json::Value>,
@@ -362,6 +366,10 @@ pub struct TLDRReview {
     pub pros: Vec<String>,
     pub cons: Vec<String>,
     pub bottom_line: String,
+    /// Expert quality scores on a 0-1 scale (multiply by 10 or 100 for
+    /// display): "overall", "customer", "professional", plus an "aspects"
+    /// map keyed by free-form aspect names from the product's professional
+    /// reviews.
     pub scores: Option<serde_json::Value>,
 }
 
