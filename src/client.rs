@@ -307,10 +307,14 @@ impl Client {
     /// ).await?;
     /// ```
     pub async fn get_price_history(&self, identifier: &str, start_date: &str, end_date: &str, retailer: Option<&str>, format: Option<OutputFormat>) -> Result<ApiResponse<Vec<OfferWithHistory>>> {
+        // Wire params are "start"/"end" — what GET /products/offers/history
+        // reads, and what the OpenAPI spec and public docs document. The old
+        // "start_date"/"end_date" names came from the MCP tool's argument
+        // convention (a different interface entirely) and 400'd every call.
         let mut params = vec![
             ("ids", identifier),
-            ("start_date", start_date),
-            ("end_date", end_date),
+            ("start", start_date),
+            ("end", end_date),
         ];
 
         if let Some(ret) = retailer {
