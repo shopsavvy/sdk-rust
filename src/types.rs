@@ -119,6 +119,10 @@ impl ProductDetails {
 pub struct PriceHistoryEntry {
     pub timestamp: String,
     pub price: f64,
+    /// ISO 4217 code `price` is denominated in. `None` on an archived point with no recorded
+    /// currency — never assume a missing value means USD (ShopSavvy prospector-audit d5-t3-1).
+    #[serde(default)]
+    pub currency: Option<String>,
     #[serde(default)]
     pub availability: Option<String>,
 }
