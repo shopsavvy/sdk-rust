@@ -107,12 +107,20 @@ impl ProductDetails {
     }
 }
 
-/// Single price point in history
+/// Single price point in history.
+///
+/// The timestamp field is `timestamp`, matching the parent `Offer`'s own `timestamp` and the
+/// real wire shape (`{availability, price, timestamp}`). Every SDK in the fleet declared it
+/// as a non-`Option` `date` — a key the API has never sent — until 2026-08-10, which makes
+/// `serde_json` fail the whole deserialize with a "missing field: date" error
+/// (ShopSavvy prospector-audit s28-t2-2). `availability` is optional because the server omits
+/// it when the observation's availability was "unknown".
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct PriceHistoryEntry {
-    pub date: String,
+    pub timestamp: String,
     pub price: f64,
-    pub availability: String,
+    #[serde(default)]
+    pub availability: Option<String>,
 }
 
 /// Product offer from a retailer
@@ -164,7 +172,14 @@ pub struct ProductWithOffers {
     pub offers: Vec<Offer>,
 }
 
-/// Offer with historical price data
+/// Offer returned by `get_price_history()`, i.e. one carrying its `history` array.
+///
+/// The field used to be `price_history`, non-`Option` and with no `#[serde(default)]`. The
+/// API has never sent a key by that name — history has always arrived under `history` — so
+/// `serde_json` returned a "missing field: price_history" error for every 200 response and
+/// `get_price_history()` could not succeed even against real data
+/// (ShopSavvy prospector-audit s28-t2-2). `#[serde(default)]` so an omitted array is an empty
+/// history rather than a hard failure of the entire response.
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct OfferWithHistory {
     pub id: String,
@@ -177,7 +192,8 @@ pub struct OfferWithHistory {
     pub url: Option<String>,
     pub seller: Option<String>,
     pub timestamp: Option<String>,
-    pub price_history: Vec<PriceHistoryEntry>,
+    #[serde(default)]
+    pub history: Vec<PriceHistoryEntry>,
 }
 
 /// Scheduled product monitoring information
