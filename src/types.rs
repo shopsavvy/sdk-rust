@@ -31,6 +31,7 @@ impl Config {
 /// API response metadata containing credit usage info
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ApiMeta {
+    pub request_id: Option<String>,
     pub credits_used: i32,
     pub credits_remaining: i32,
     pub rate_limit_remaining: Option<i32>,
@@ -110,7 +111,7 @@ impl ProductDetails {
 /// Single price point in history.
 ///
 /// The timestamp field is `timestamp`, matching the parent `Offer`'s own `timestamp` and the
-/// real wire shape (`{availability, price, timestamp}`). Every SDK in the fleet declared it
+/// real wire shape (`{availability, price, currency, timestamp}`). Every SDK in the fleet declared it
 /// as a non-`Option` `date` — a key the API has never sent — until 2026-08-10, which makes
 /// `serde_json` fail the whole deserialize with a "missing field: date" error
 /// (ShopSavvy prospector-audit s28-t2-2). `availability` is optional because the server omits
@@ -196,8 +197,28 @@ pub struct OfferWithHistory {
     pub url: Option<String>,
     pub seller: Option<String>,
     pub timestamp: Option<String>,
+    /// Newest observation first, as the API sorts it. Always empty for eBay listings.
     #[serde(default)]
     pub history: Vec<PriceHistoryEntry>,
+}
+
+/// One product in a `get_price_history()` response: the product's own fields plus every
+/// offer found for it, each carrying its `history`.
+///
+/// `GET /products/offers/history` returns `data` as a list of PRODUCTS (one per requested
+/// identifier that resolved), not a list of offers. Through 1.3.0 this SDK typed `data` as
+/// `Vec<OfferWithHistory>`, so every real response failed to deserialize with "missing field
+/// `id`" — a product object has no `id` — and `get_price_history()` still could not return
+/// data even after the wire params and field names were corrected.
+///
+/// The product fields are flattened in, so `product.title`, `product.barcode`, etc. read
+/// exactly as they do on `ProductDetails`.
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct ProductWithPriceHistory {
+    #[serde(flatten)]
+    pub product: ProductDetails,
+    #[serde(default)]
+    pub offers: Vec<OfferWithHistory>,
 }
 
 /// Scheduled product monitoring information

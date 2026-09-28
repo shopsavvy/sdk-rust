@@ -294,6 +294,9 @@ impl Client {
     ///
     /// # Example
     ///
+    /// Returns one `ProductWithPriceHistory` per identifier that resolved; each carries its
+    /// `offers`, and each offer its `history` (newest point first).
+    ///
     /// ```rust,ignore
     /// let history = client.get_price_history(
     ///     "012345678901",
@@ -302,8 +305,16 @@ impl Client {
     ///     None,
     ///     None
     /// ).await?;
+    /// for product in &history.data {
+    ///     println!("{}", product.product.title);
+    ///     for offer in &product.offers {
+    ///         for point in &offer.history {
+    ///             println!("  {:?} {} {} {:?}", offer.retailer, point.timestamp, point.price, point.currency);
+    ///         }
+    ///     }
+    /// }
     /// ```
-    pub async fn get_price_history(&self, identifier: &str, start_date: &str, end_date: &str, retailer: Option<&str>, format: Option<OutputFormat>) -> Result<ApiResponse<Vec<OfferWithHistory>>> {
+    pub async fn get_price_history(&self, identifier: &str, start_date: &str, end_date: &str, retailer: Option<&str>, format: Option<OutputFormat>) -> Result<ApiResponse<Vec<ProductWithPriceHistory>>> {
         // Wire params are "start"/"end" — what GET /products/offers/history
         // reads, and what the OpenAPI spec and public docs document. The old
         // "start_date"/"end_date" names came from the MCP tool's argument
