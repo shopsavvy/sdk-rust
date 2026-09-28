@@ -7,7 +7,7 @@ use reqwest::{header::HeaderMap, Client as HttpClient};
 use serde_json::Value;
 
 /// SDK version
-pub const VERSION: &str = "1.1.0";
+pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// ShopSavvy Data API client
 #[derive(Debug, Clone)]
@@ -297,7 +297,9 @@ impl Client {
     /// Returns one `ProductWithPriceHistory` per identifier that resolved; each carries its
     /// `offers`, and each offer its `history` (newest point first).
     ///
-    /// ```rust,ignore
+    /// ```rust,no_run
+    /// # async fn run() -> shopsavvy_sdk::Result<()> {
+    /// # let client = shopsavvy_sdk::Client::new("ss_live_your_api_key_here")?;
     /// let history = client.get_price_history(
     ///     "012345678901",
     ///     "2024-01-01",
@@ -308,11 +310,20 @@ impl Client {
     /// for product in &history.data {
     ///     println!("{}", product.product.title);
     ///     for offer in &product.offers {
+    ///         let retailer = offer.retailer.as_deref().unwrap_or("unknown");
     ///         for point in &offer.history {
-    ///             println!("  {:?} {} {} {:?}", offer.retailer, point.timestamp, point.price, point.currency);
+    ///             println!(
+    ///                 "  {} {} {:.2} {}",
+    ///                 retailer,
+    ///                 point.timestamp,
+    ///                 point.price,
+    ///                 point.currency.as_deref().unwrap_or("?")
+    ///             );
     ///         }
     ///     }
     /// }
+    /// # Ok(())
+    /// # }
     /// ```
     pub async fn get_price_history(&self, identifier: &str, start_date: &str, end_date: &str, retailer: Option<&str>, format: Option<OutputFormat>) -> Result<ApiResponse<Vec<ProductWithPriceHistory>>> {
         // Wire params are "start"/"end" — what GET /products/offers/history
