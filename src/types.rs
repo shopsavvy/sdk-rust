@@ -159,6 +159,13 @@ impl Offer {
     pub fn last_updated(&self) -> Option<&str> {
         self.timestamp.as_deref()
     }
+
+    /// `true` when the retailer reports the item in stock. The API sends availability as
+    /// one of `"in"`, `"out"`, `"limited"`, `"pre-order"`, `"coming-soon"` or
+    /// `"discontinued"` (and omits it when unknown) — never `"in_stock"`.
+    pub fn is_in_stock(&self) -> bool {
+        self.availability.as_deref() == Some("in")
+    }
 }
 
 /// Product with nested offers (returned by offers endpoint)
@@ -200,6 +207,15 @@ pub struct OfferWithHistory {
     /// Newest observation first, as the API sorts it. Always empty for eBay listings.
     #[serde(default)]
     pub history: Vec<PriceHistoryEntry>,
+}
+
+impl OfferWithHistory {
+    /// `true` when the retailer reports the item in stock. The API sends availability as
+    /// one of `"in"`, `"out"`, `"limited"`, `"pre-order"`, `"coming-soon"` or
+    /// `"discontinued"` (and omits it when unknown) — never `"in_stock"`.
+    pub fn is_in_stock(&self) -> bool {
+        self.availability.as_deref() == Some("in")
+    }
 }
 
 /// One product in a `get_price_history()` response: the product's own fields plus every
