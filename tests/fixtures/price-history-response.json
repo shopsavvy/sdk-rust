@@ -1,0 +1,87 @@
+{
+  "success": true,
+  "data": [
+    {
+      "title": "Keurig K-Mini Single Serve Coffee Maker, Black",
+      "category": "Home & Kitchen > Kitchen & Dining > Coffee, Tea & Espresso > Coffee Makers > Single-Serve Brewers",
+      "brand": "Keurig",
+      "color": "Black",
+      "shopsavvy": "3ONn300xybP3y66ibqc1",
+      "barcode": "611247373064",
+      "amazon": "B07G14HTBZ",
+      "model": "K-MINI",
+      "mpn": "5000200237",
+      "images": [
+        "https://x.shopsavvy.com/https://images-na.ssl-images-amazon.com/images/I/31jy5fSzyRL.jpg"
+      ],
+      "title_short": "Keurig K-Mini",
+      "slug": "keurig-k-mini-single-serve-coffee-maker-black",
+      "rating": { "value": 4.6, "count": 51234 },
+      "identifiers": { "amazon": "B07G14HTBZ", "upc": "611247373064" },
+      "offers": [
+        {
+          "id": "0IUouCFtZEhxeOablTPl",
+          "availability": "in",
+          "condition": "new",
+          "retailer": "Amazon",
+          "currency": "USD",
+          "price": 74.96,
+          "seller": "ACME Deals",
+          "URL": "https://www.amazon.com/dp/B07G14HTBZ?m=A1GKQADQC2VI6E",
+          "timestamp": "2022-11-27T22:36:33.236Z",
+          "history": [
+            { "availability": "in", "price": 74.96, "currency": "USD", "timestamp": "2022-11-27T22:36:33.236Z" },
+            { "availability": "out", "price": 70.99, "currency": "USD", "timestamp": "2022-11-24T10:00:00.000Z" },
+            { "price": 79.99, "currency": null, "timestamp": "2022-11-21T08:15:00.000Z" }
+          ]
+        },
+        {
+          "id": "Z9kQ2mBestBuyOffer01",
+          "condition": "new",
+          "retailer": "Best Buy",
+          "currency": "USD",
+          "price": 59.99,
+          "seller": null,
+          "URL": "https://www.bestbuy.com/site/keurig-k-mini/6358476.p?skuId=6358476",
+          "timestamp": "2022-11-26T11:47:00.226Z",
+          "history": [
+            { "availability": "in", "price": 59.99, "currency": "USD", "timestamp": "2022-11-26T11:47:00.226Z" },
+            { "availability": "in", "price": 64.99, "currency": "USD", "timestamp": "2022-11-22T11:47:00.226Z" }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Keurig K-Elite Single Serve K-Cup Pod Maker, Brushed Silver",
+      "category": null,
+      "brand": "Keurig",
+      "color": null,
+      "shopsavvy": "DrKWneG0MpFlZpwZXNYa",
+      "barcode": "611247369449",
+      "amazon": null,
+      "model": "K-Elite",
+      "mpn": null,
+      "images": [],
+      "offers": [
+        {
+          "id": "eBayListing000000001",
+          "availability": "in",
+          "condition": "used",
+          "retailer": "eBay",
+          "currency": "USD",
+          "price": 89.5,
+          "seller": "coffee_reseller",
+          "URL": "https://www.ebay.com/itm/1234567890",
+          "timestamp": "2022-11-25T09:00:00.000Z",
+          "history": []
+        }
+      ]
+    }
+  ],
+  "meta": {
+    "request_id": "req-7f3c9a",
+    "credits_used": 14,
+    "credits_remaining": 986,
+    "rate_limit_remaining": 999
+  }
+}
