@@ -351,11 +351,16 @@ impl Client {
 
     /// Schedule product monitoring
     ///
+    /// Sends `PUT /products/scheduled?ids=…&schedule=…[&retailer=…]`. The server reads
+    /// only the query string; through 1.3.0 this SDK POSTed a JSON body
+    /// (`{identifier, frequency, retailer}`) the server never looks at, so every call
+    /// failed with "ids is required".
+    ///
     /// # Arguments
     ///
     /// * `identifier` - Product identifier
     /// * `frequency` - How often to refresh
-    /// * `retailer` - Optional retailer to monitor
+    /// * `retailer` - Optional retailer domain to monitor (e.g. `"amazon.com"`)
     ///
     /// # Example
     ///
@@ -365,33 +370,27 @@ impl Client {
     ///     MonitoringFrequency::Daily,
     ///     None
     /// ).await?;
+    /// for scheduled in result.data {
+    ///     println!("{} -> {:?}", scheduled.product.title, scheduled.schedule);
+    /// }
     /// ```
-    pub async fn schedule_product_monitoring(&self, identifier: &str, frequency: MonitoringFrequency, retailer: Option<&str>) -> Result<ApiResponse<ScheduleResponse>> {
-        let mut body = serde_json::json!({
-            "identifier": identifier,
-            "frequency": frequency.to_string(),
-        });
-
-        if let Some(ret) = retailer {
-            body["retailer"] = serde_json::Value::String(ret.to_string());
-        }
-
-        self.request(reqwest::Method::POST, "/products/schedule", None, Some(&body)).await
+    pub async fn schedule_product_monitoring(&self, identifier: &str, frequency: MonitoringFrequency, retailer: Option<&str>) -> Result<ApiResponse<Vec<ScheduledProduct>>> {
+        self.schedule_ids(identifier, frequency, retailer).await
     }
 
-    /// Schedule monitoring for multiple products
-    pub async fn schedule_product_monitoring_batch(&self, identifiers: &[&str], frequency: MonitoringFrequency, retailer: Option<&str>) -> Result<ApiResponse<Vec<ScheduleBatchResponse>>> {
-        let identifiers_str = identifiers.join(",");
-        let mut body = serde_json::json!({
-            "identifiers": identifiers_str,
-            "frequency": frequency.to_string(),
-        });
+    /// Schedule monitoring for multiple products (one `PUT /products/scheduled` with the
+    /// identifiers comma-joined into `ids`).
+    pub async fn schedule_product_monitoring_batch(&self, identifiers: &[&str], frequency: MonitoringFrequency, retailer: Option<&str>) -> Result<ApiResponse<Vec<ScheduledProduct>>> {
+        self.schedule_ids(&identifiers.join(","), frequency, retailer).await
+    }
 
+    async fn schedule_ids(&self, ids: &str, frequency: MonitoringFrequency, retailer: Option<&str>) -> Result<ApiResponse<Vec<ScheduledProduct>>> {
+        let frequency = frequency.to_string();
+        let mut params = vec![("ids", ids), ("schedule", frequency.as_str())];
         if let Some(ret) = retailer {
-            body["retailer"] = serde_json::Value::String(ret.to_string());
+            params.push(("retailer", ret));
         }
-
-        self.request(reqwest::Method::POST, "/products/schedule", None, Some(&body)).await
+        self.request(reqwest::Method::PUT, "/products/scheduled", Some(&params), None).await
     }
 
     /// Get all scheduled products
@@ -407,22 +406,21 @@ impl Client {
     }
 
     /// Remove product from monitoring schedule
-    pub async fn remove_product_from_schedule(&self, identifier: &str) -> Result<ApiResponse<RemoveResponse>> {
-        let body = serde_json::json!({
-            "identifier": identifier,
-        });
-
-        self.request(reqwest::Method::DELETE, "/products/schedule", None, Some(&body)).await
+    ///
+    /// Sends `DELETE /products/scheduled?ids=…`. Through 1.3.0 this sent a JSON body the
+    /// server never reads.
+    pub async fn remove_product_from_schedule(&self, identifier: &str) -> Result<ScheduleRemovalResponse> {
+        self.unschedule_ids(identifier).await
     }
 
-    /// Remove multiple products from monitoring schedule
-    pub async fn remove_products_from_schedule(&self, identifiers: &[&str]) -> Result<ApiResponse<Vec<RemoveBatchResponse>>> {
-        let identifiers_str = identifiers.join(",");
-        let body = serde_json::json!({
-            "identifiers": identifiers_str,
-        });
+    /// Remove multiple products from monitoring schedule (one `DELETE /products/scheduled`
+    /// with the identifiers comma-joined into `ids`).
+    pub async fn remove_products_from_schedule(&self, identifiers: &[&str]) -> Result<ScheduleRemovalResponse> {
+        self.unschedule_ids(&identifiers.join(",")).await
+    }
 
-        self.request(reqwest::Method::DELETE, "/products/schedule", None, Some(&body)).await
+    async fn unschedule_ids(&self, ids: &str) -> Result<ScheduleRemovalResponse> {
+        self.request_raw(reqwest::Method::DELETE, "/products/scheduled", Some(&[("ids", ids)])).await
     }
 
     /// Get API usage information

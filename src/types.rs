@@ -221,15 +221,33 @@ pub struct ProductWithPriceHistory {
     pub offers: Vec<OfferWithHistory>,
 }
 
-/// Scheduled product monitoring information
+/// A product enrolled in scheduled refreshes, as returned by `get_scheduled_products()`,
+/// `schedule_product_monitoring()` and `schedule_product_monitoring_batch()`.
+///
+/// The API returns the product's own fields plus `schedule` (and `retailer` when the
+/// schedule is restricted to one). Through 1.3.0 this was modelled as
+/// `{product_id, identifier, frequency, created_at, ...}` — keys the API has never sent — so
+/// every scheduling response failed to deserialize.
 #[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ScheduledProduct {
-    pub product_id: String,
-    pub identifier: String,
-    pub frequency: String,
+    #[serde(flatten)]
+    pub product: ProductDetails,
+    /// `"hourly"`, `"daily"` or `"weekly"`. `None` when the product was scheduled at an
+    /// interval the Data API has no label for (e.g. by ShopSavvy Business).
+    pub schedule: Option<String>,
+    /// Retailer domain the schedule is restricted to, when one was given.
     pub retailer: Option<String>,
-    pub created_at: String,
-    pub last_refreshed: Option<String>,
+}
+
+/// Response from `remove_product_from_schedule()` / `remove_products_from_schedule()`.
+///
+/// The unschedule endpoint returns `{success, message, meta}` with no `data`, so it cannot
+/// be an `ApiResponse<T>`.
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct ScheduleRemovalResponse {
+    pub success: bool,
+    pub message: Option<String>,
+    pub meta: Option<ApiMeta>,
 }
 
 /// Current billing period details
@@ -305,34 +323,6 @@ impl ProductSearchResult {
     pub fn credits_remaining(&self) -> i32 {
         self.meta.as_ref().map(|m| m.credits_remaining).unwrap_or(0)
     }
-}
-
-/// Response from scheduling a product
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct ScheduleResponse {
-    pub scheduled: bool,
-    pub product_id: String,
-}
-
-/// Response from batch scheduling
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct ScheduleBatchResponse {
-    pub identifier: String,
-    pub scheduled: bool,
-    pub product_id: String,
-}
-
-/// Response from removing a product from schedule
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct RemoveResponse {
-    pub removed: bool,
-}
-
-/// Response from batch removal
-#[derive(Debug, Deserialize, Serialize, Clone)]
-pub struct RemoveBatchResponse {
-    pub identifier: String,
-    pub removed: bool,
 }
 
 /// Available output formats
