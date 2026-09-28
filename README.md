@@ -246,7 +246,7 @@ async fn analyze_offers(client: &Client, identifier: &str) -> Result<PriceAnalys
     
     // Additional analysis
     let in_stock_offers = offers.iter()
-        .filter(|offer| offer.availability.as_deref() == Some("in_stock"))
+        .filter(|offer| offer.is_in_stock()) // availability == "in"
         .count();
     
     let new_condition_offers = offers.iter()
@@ -375,6 +375,46 @@ async fn main() -> Result<()> {
 }
 ```
 
+### Scheduled Refresh
+
+Schedule products to be refreshed hourly, daily or weekly, optionally limited to one
+retailer domain. Scheduling costs 1 credit per product found; listing and unscheduling are
+free.
+
+```rust
+use shopsavvy_sdk::{Client, MonitoringFrequency, Result};
+
+async fn manage_schedule(client: &Client) -> Result<()> {
+    // `data` holds one ScheduledProduct per product found: the product's fields
+    // (flattened into `.product`) plus the schedule that was set and the retailer, if any.
+    let scheduled = client
+        .schedule_product_monitoring_batch(&["012345678901", "B07GV2S1GS"], MonitoringFrequency::Daily, Some("amazon.com"))
+        .await?;
+    for item in &scheduled.data {
+        println!("{} ({}) -> {:?}", item.product.title, item.product.shopsavvy, item.schedule);
+    }
+    println!("Credits used: {}", scheduled.credits_used());
+
+    // Everything scheduled under this API key, oldest first
+    let list = client.get_scheduled_products().await?;
+    for item in &list.data {
+        // `schedule` is None for an interval with no Data API label (e.g. set through
+        // ShopSavvy Business); `retailer` is None when refreshes cover every retailer.
+        println!(
+            "{}: {} at {}",
+            item.product.title,
+            item.schedule.as_deref().unwrap_or("custom interval"),
+            item.retailer.as_deref().unwrap_or("all retailers")
+        );
+    }
+
+    // Stop refreshing. The API returns success/message/meta and no data.
+    let removed = client.remove_product_from_schedule("012345678901").await?;
+    println!("{} {:?}", removed.success, removed.message);
+    Ok(())
+}
+```
+
 ## 🚀 Production Deployment
 
 ### High-Performance Web Service with Axum
@@ -470,7 +510,7 @@ async fn get_product_offers(
                     "total_offers": offers.len(),
                     "best_price": offers.iter().map(|o| o.price).fold(f64::INFINITY, f64::min),
                     "average_price": offers.iter().map(|o| o.price).sum::<f64>() / offers.len() as f64,
-                    "in_stock_count": offers.iter().filter(|o| o.availability.as_deref() == Some("in_stock")).count(),
+                    "in_stock_count": offers.iter().filter(|o| o.is_in_stock()).count(),
                 }
             });
             
@@ -1024,111 +1064,93 @@ async fn main() -> Result<()> {
 
 ## Data Models
 
-All data structures use Rust's type system for safety and performance:
+These mirror `src/types.rs`. Fields the API may send as `null` or omit are `Option`.
 
 ### ProductDetails
 ```rust
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProductDetails {
-    pub id: String,
-    pub name: String,
-    pub description: Option<String>,
+    pub title: String,
+    pub shopsavvy: String,              // ShopSavvy product ID
     pub brand: Option<String>,
     pub category: Option<String>,
-    pub upc: Option<String>,
-    pub asin: Option<String>,
-    pub model_number: Option<String>,
-    pub images: Vec<String>,
-    pub specifications: HashMap<String, String>,
-    pub created_at: Option<String>,
-    pub updated_at: Option<String>,
-}
-
-impl ProductDetails {
-    /// Check if the product has images
-    pub fn has_images(&self) -> bool {
-        !self.images.is_empty()
-    }
-    
-    /// Get the display name (brand + name)
-    pub fn display_name(&self) -> String {
-        match &self.brand {
-            Some(brand) => format!("{} {}", brand, self.name),
-            None => self.name.clone(),
-        }
-    }
-    
-    /// Get the main product image
-    pub fn main_image(&self) -> Option<&String> {
-        self.images.first()
-    }
+    pub images: Option<Vec<String>>,
+    pub barcode: Option<String>,
+    pub amazon: Option<String>,         // ASIN
+    pub model: Option<String>,
+    pub mpn: Option<String>,
+    pub color: Option<String>,
+    pub title_short: Option<String>,
+    pub slug: Option<String>,
+    pub description: Option<String>,
+    pub categories: Option<Vec<String>>,
+    pub attributes: Option<HashMap<String, String>>,
+    pub rating: Option<serde_json::Value>,      // {"value": 4.6, "count": 18234}
+    pub score: Option<serde_json::Value>,       // 0-1 scale: overall, customer, professional, aspects
+    pub keywords: Option<Vec<String>>,
+    pub identifiers: Option<serde_json::Value>,
 }
 ```
 
 ### Offer
 ```rust
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Offer {
-    pub retailer: String,
-    pub price: f64,
+    pub id: String,
+    pub retailer: Option<String>,
+    pub price: Option<f64>,
     pub currency: Option<String>,
+    /// "in", "out", "limited", "pre-order", "coming-soon" or "discontinued";
+    /// None when unknown.
     pub availability: Option<String>,
     pub condition: Option<String>,
-    pub shipping_cost: Option<f64>,
-    pub url: Option<String>,
-    pub last_updated: Option<String>,
+    pub url: Option<String>,            // "URL" on the wire
+    pub seller: Option<String>,
+    pub timestamp: Option<String>,
+    pub history: Option<Vec<PriceHistoryEntry>>,
 }
 
 impl Offer {
-    /// Check if the offer is in stock
-    pub fn is_in_stock(&self) -> bool {
-        self.availability.as_deref() == Some("in_stock")
-    }
-    
-    /// Check if the condition is new
-    pub fn is_new_condition(&self) -> bool {
-        self.condition.as_deref() == Some("new")
-    }
-    
-    /// Calculate total cost including shipping
-    pub fn total_cost(&self) -> f64 {
-        self.price + self.shipping_cost.unwrap_or(0.0)
-    }
-    
-    /// Format price with currency
-    pub fn formatted_price(&self) -> String {
-        let currency = self.currency.as_deref().unwrap_or("USD");
-        match currency {
-            "USD" => format!("${:.2}", self.price),
-            "EUR" => format!("€{:.2}", self.price),
-            "GBP" => format!("£{:.2}", self.price),
-            _ => format!("{} {:.2}", currency, self.price),
-        }
-    }
+    /// true when availability is "in"
+    pub fn is_in_stock(&self) -> bool;
+}
+```
+
+### ScheduledProduct and ScheduleRemovalResponse
+```rust
+/// Element of `data` from schedule_product_monitoring[_batch]() and get_scheduled_products()
+pub struct ScheduledProduct {
+    #[serde(flatten)]
+    pub product: ProductDetails,
+    pub schedule: Option<String>,   // "hourly" | "daily" | "weekly"
+    pub retailer: Option<String>,
+}
+
+/// remove_product_from_schedule() / remove_products_from_schedule(): no `data`
+pub struct ScheduleRemovalResponse {
+    pub success: bool,
+    pub message: Option<String>,
+    pub meta: Option<ApiMeta>,
 }
 ```
 
 ### ApiResponse
 ```rust
-#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ApiResponse<T> {
     pub success: bool,
     pub data: T,
     pub message: Option<String>,
-    pub credits_used: Option<i32>,
-    pub credits_remaining: Option<i32>,
+    pub meta: Option<ApiMeta>,
+}
+
+pub struct ApiMeta {
+    pub request_id: Option<String>,
+    pub credits_used: i32,
+    pub credits_remaining: i32,
+    pub rate_limit_remaining: Option<i32>,
 }
 
 impl<T> ApiResponse<T> {
-    /// Check if the response was successful
-    pub fn is_success(&self) -> bool {
-        self.success
-    }
-    
-    /// Get credits remaining or default to 0
-    pub fn credits_remaining(&self) -> i32 {
-        self.credits_remaining.unwrap_or(0)
-    }
+    pub fn credits_used(&self) -> i32;       // 0 when meta is absent
+    pub fn credits_remaining(&self) -> i32;
 }
 ```
 
