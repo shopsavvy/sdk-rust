@@ -1,0 +1,5 @@
+{
+  "success": true,
+  "message": "Products successfully removed from schedule",
+  "meta": {"request_id": "req_del_22d0", "credits_used": 0, "credits_remaining": 0, "rate_limit_remaining": 0}
+}

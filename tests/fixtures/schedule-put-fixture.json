@@ -1,0 +1,45 @@
+{
+  "success": true,
+  "data": [
+    {
+      "title": "Keurig K-Mini Single Serve Coffee Maker, Black",
+      "category": "Kitchen & Dining",
+      "brand": "Keurig",
+      "color": "Black",
+      "shopsavvy": "3ONn300xybP3y66ibqc1",
+      "barcode": "611247373064",
+      "amazon": "B07GV2S1GS",
+      "model": "K-Mini",
+      "mpn": "5000200237",
+      "images": [
+        "https://images.shopsavvy.com/3ONn300xybP3y66ibqc1/main.jpg",
+        "https://images.shopsavvy.com/3ONn300xybP3y66ibqc1/side.jpg"
+      ],
+      "title_short": "Keurig K-Mini",
+      "slug": "keurig-k-mini-single-serve-coffee-maker-black",
+      "description": "Brews any cup size between 6 and 12 oz.",
+      "categories": ["Home & Kitchen", "Coffee Makers"],
+      "attributes": {"Capacity": "12 oz", "Wattage": "600 W"},
+      "rating": {"value": 4.6, "count": 18234},
+      "score": {"overall": 0.82, "customer": 0.9, "professional": 0.74, "aspects": {"value": 0.8, "reliability": 0.7}},
+      "keywords": ["coffee maker", "single serve"],
+      "identifiers": {"amazon": "B07GV2S1GS", "walmart": "592453934"},
+      "schedule": "daily",
+      "retailer": "amazon.com"
+    },
+    {
+      "title": "Keurig K-Elite Coffee Maker",
+      "category": null,
+      "brand": "Keurig",
+      "color": null,
+      "shopsavvy": "DrKWneG0MpFlZpwZXNYa",
+      "barcode": "611247369449",
+      "model": "K-Elite",
+      "mpn": null,
+      "images": [],
+      "schedule": "daily",
+      "retailer": "amazon.com"
+    }
+  ],
+  "meta": {"request_id": "req_put_7f3a", "credits_used": 2, "credits_remaining": 998, "rate_limit_remaining": 59}
+}
