@@ -82,7 +82,7 @@ impl Client {
     where
         T: for<'de> serde::Deserialize<'de>,
     {
-        let url = format!("{}{}", self.config.base_url, endpoint);
+        let url = self.url(endpoint);
 
         let mut request = self.client.request(method, &url);
 
@@ -94,6 +94,21 @@ impl Client {
             request = request.json(body);
         }
 
+        self.send(request).await
+    }
+
+    /// Send a prepared request, map non-2xx statuses to typed errors, and
+    /// deserialize the body.
+    ///
+    /// Every endpoint goes through here. The deals/batch/webhook/review methods
+    /// used to build their own requests against `self.base_url` / `self.api_key`
+    /// — fields `Client` does not have — so the crate did not compile at all, and
+    /// even had it compiled they would have parsed an error body as success and
+    /// sent Authorization/User-Agent twice (both are already default headers).
+    async fn send<T>(&self, request: reqwest::RequestBuilder) -> Result<T>
+    where
+        T: for<'de> serde::Deserialize<'de>,
+    {
         let response = request.send().await?;
         let status_code = response.status().as_u16();
 
@@ -108,9 +123,7 @@ impl Client {
         }
 
         let response_text = response.text().await?;
-        let api_response: ApiResponse<T> = serde_json::from_str(&response_text)?;
-
-        Ok(api_response)
+        Ok(serde_json::from_str(&response_text)?)
     }
 
     /// Make a request and return raw result (for ProductSearchResult)
@@ -118,7 +131,7 @@ impl Client {
     where
         T: for<'de> serde::Deserialize<'de>,
     {
-        let url = format!("{}{}", self.config.base_url, endpoint);
+        let url = self.url(endpoint);
 
         let mut request = self.client.request(method, &url);
 
@@ -126,23 +139,7 @@ impl Client {
             request = request.query(params);
         }
 
-        let response = request.send().await?;
-        let status_code = response.status().as_u16();
-
-        if !response.status().is_success() {
-            let error_text = response.text().await.unwrap_or_default();
-            let error_message = if let Ok(error_json) = serde_json::from_str::<serde_json::Value>(&error_text) {
-                error_json["error"].as_str().unwrap_or(&error_text).to_string()
-            } else {
-                error_text
-            };
-            return Err(Error::from_status_code(status_code, error_message));
-        }
-
-        let response_text = response.text().await?;
-        let result: T = serde_json::from_str(&response_text)?;
-
-        Ok(result)
+        self.send(request).await
     }
 
     /// Search for products by keyword
@@ -419,72 +416,39 @@ impl Client {
     }
 
     /// Browse current shopping deals
-    pub async fn get_deals(&self, params: Option<Vec<(&str, &str)>>) -> Result<super::types::DealsResponse> {
-        let url = format!("{}/deals", self.base_url);
-        let mut request = self.client.get(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .header("User-Agent", format!("ShopSavvy-Rust-SDK/{}", VERSION));
+    pub async fn get_deals(&self, params: Option<Vec<(&str, &str)>>) -> Result<DealsResponse> {
+        let mut request = self.client.get(self.url("/deals"));
         if let Some(p) = params {
             request = request.query(&p);
         }
-        let response = request.send().await.map_err(|e| super::error::Error::Network(e))?;
-        let body = response.text().await.map_err(|e| super::error::Error::Network(e))?;
-        serde_json::from_str(&body).map_err(|e| super::error::Error::Json(e))
+        self.send(request).await
     }
 
     /// Look up multiple products at once (sync for <=20, async for >20)
     pub async fn batch_lookup(&self, identifiers: Vec<String>, include: Option<Vec<String>>) -> Result<serde_json::Value> {
-        let url = format!("{}/products/batch", self.base_url);
         let mut body = serde_json::json!({ "identifiers": identifiers });
         if let Some(inc) = include {
             body["include"] = serde_json::json!(inc);
         }
-        let response = self.client.post(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .header("User-Agent", format!("ShopSavvy-Rust-SDK/{}", VERSION))
-            .json(&body)
-            .send().await.map_err(|e| super::error::Error::Network(e))?;
-        let body = response.text().await.map_err(|e| super::error::Error::Network(e))?;
-        serde_json::from_str(&body).map_err(|e| super::error::Error::Json(e))
+        self.send(self.client.post(self.url("/products/batch")).json(&body)).await
     }
 
     /// Poll for async batch job results
     pub async fn get_batch_status(&self, batch_id: &str) -> Result<serde_json::Value> {
-        let url = format!("{}/batch/{}", self.base_url, batch_id);
-        let response = self.client.get(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .header("User-Agent", format!("ShopSavvy-Rust-SDK/{}", VERSION))
-            .send().await.map_err(|e| super::error::Error::Network(e))?;
-        let body = response.text().await.map_err(|e| super::error::Error::Network(e))?;
-        serde_json::from_str(&body).map_err(|e| super::error::Error::Json(e))
+        self.send(self.client.get(self.url(&format!("/batch/{}", batch_id)))).await
     }
 
     pub async fn create_webhook(&self, url: &str, events: Vec<String>) -> Result<serde_json::Value> {
         let body = serde_json::json!({ "url": url, "events": events });
-        let response = self.client.post(&format!("{}/webhooks", self.base_url))
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .header("User-Agent", format!("ShopSavvy-Rust-SDK/{}", VERSION))
-            .json(&body).send().await.map_err(|e| super::error::Error::Network(e))?;
-        let body = response.text().await.map_err(|e| super::error::Error::Network(e))?;
-        serde_json::from_str(&body).map_err(|e| super::error::Error::Json(e))
+        self.send(self.client.post(self.url("/webhooks")).json(&body)).await
     }
 
     pub async fn list_webhooks(&self) -> Result<serde_json::Value> {
-        let response = self.client.get(&format!("{}/webhooks", self.base_url))
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .header("User-Agent", format!("ShopSavvy-Rust-SDK/{}", VERSION))
-            .send().await.map_err(|e| super::error::Error::Network(e))?;
-        let body = response.text().await.map_err(|e| super::error::Error::Network(e))?;
-        serde_json::from_str(&body).map_err(|e| super::error::Error::Json(e))
+        self.send(self.client.get(self.url("/webhooks"))).await
     }
 
     pub async fn test_webhook(&self, webhook_id: &str) -> Result<serde_json::Value> {
-        let response = self.client.post(&format!("{}/webhooks/{}/test", self.base_url, webhook_id))
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .header("User-Agent", format!("ShopSavvy-Rust-SDK/{}", VERSION))
-            .send().await.map_err(|e| super::error::Error::Network(e))?;
-        let body = response.text().await.map_err(|e| super::error::Error::Network(e))?;
-        serde_json::from_str(&body).map_err(|e| super::error::Error::Json(e))
+        self.send(self.client.post(self.url(&format!("/webhooks/{}/test", webhook_id)))).await
     }
 
     /// Update a webhook. All fields are optional, but at least one of `url`,
@@ -497,7 +461,7 @@ impl Client {
         is_active: Option<bool>,
     ) -> Result<serde_json::Value> {
         if url.is_none() && events.is_none() && is_active.is_none() {
-            return Err(super::error::Error::Validation {
+            return Err(Error::Validation {
                 message: "update_webhook requires at least one of url, events, or is_active".to_string(),
                 status_code: 400,
             });
@@ -506,32 +470,20 @@ impl Client {
         if let Some(u) = url { body.insert("url".to_string(), serde_json::json!(u)); }
         if let Some(e) = events { body.insert("events".to_string(), serde_json::json!(e)); }
         if let Some(a) = is_active { body.insert("is_active".to_string(), serde_json::json!(a)); }
-        let response = self.client.put(&format!("{}/webhooks/{}", self.base_url, webhook_id))
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .header("User-Agent", format!("ShopSavvy-Rust-SDK/{}", VERSION))
-            .json(&serde_json::Value::Object(body)).send().await.map_err(|e| super::error::Error::Network(e))?;
-        let body = response.text().await.map_err(|e| super::error::Error::Network(e))?;
-        serde_json::from_str(&body).map_err(|e| super::error::Error::Json(e))
+        let request = self.client.put(self.url(&format!("/webhooks/{}", webhook_id))).json(&serde_json::Value::Object(body));
+        self.send(request).await
     }
 
     pub async fn delete_webhook(&self, webhook_id: &str) -> Result<serde_json::Value> {
-        let response = self.client.delete(&format!("{}/webhooks/{}", self.base_url, webhook_id))
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .header("User-Agent", format!("ShopSavvy-Rust-SDK/{}", VERSION))
-            .send().await.map_err(|e| super::error::Error::Network(e))?;
-        let body = response.text().await.map_err(|e| super::error::Error::Network(e))?;
-        serde_json::from_str(&body).map_err(|e| super::error::Error::Json(e))
+        self.send(self.client.delete(self.url(&format!("/webhooks/{}", webhook_id)))).await
     }
 
     /// Get TLDR review for a product
-    pub async fn get_product_review(&self, identifier: &str) -> Result<super::types::ReviewResponse> {
-        let url = format!("{}/products/reviews", self.base_url);
-        let response = self.client.get(&url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
-            .header("User-Agent", format!("ShopSavvy-Rust-SDK/{}", VERSION))
-            .query(&[("id", identifier)])
-            .send().await.map_err(|e| super::error::Error::Network(e))?;
-        let body = response.text().await.map_err(|e| super::error::Error::Network(e))?;
-        serde_json::from_str(&body).map_err(|e| super::error::Error::Json(e))
+    pub async fn get_product_review(&self, identifier: &str) -> Result<ReviewResponse> {
+        self.send(self.client.get(self.url("/products/reviews")).query(&[("id", identifier)])).await
+    }
+
+    fn url(&self, endpoint: &str) -> String {
+        format!("{}{}", self.config.base_url, endpoint)
     }
 }
