@@ -12,7 +12,7 @@ Official Rust SDK for the [ShopSavvy Data API](https://shopsavvy.com/data). Acce
 ```toml
 # Cargo.toml
 [dependencies]
-shopsavvy-sdk = "1.0.0"
+shopsavvy-sdk = "1.4"
 tokio = { version = "1.0", features = ["full"] }
 ```
 
@@ -44,7 +44,7 @@ async fn main() -> Result<()> {
 
 ```toml
 [dependencies]
-shopsavvy-sdk = "1.0.0"
+shopsavvy-sdk = "1.4"
 tokio = { version = "1.0", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }  # For custom serialization
 ```
@@ -53,7 +53,7 @@ serde = { version = "1.0", features = ["derive"] }  # For custom serialization
 
 ```toml
 [dependencies]
-shopsavvy-sdk = { version = "1.0.0", features = ["metrics", "tracing"] }
+shopsavvy-sdk = { version = "1.4", features = ["metrics", "tracing"] }
 ```
 
 ### Get Your API Key
@@ -331,6 +331,50 @@ async fn compare_retailer_prices(client: &Client, identifier: &str) -> Result<()
 }
 ```
 
+### Price History
+
+`get_price_history` returns one entry per product that resolved. Each carries the
+product's fields (`product.title`, `product.barcode`, ...) and its `offers`; each offer
+carries its `history` — newest point first, each with `timestamp`, `price`, an optional
+`currency` (ISO 4217, `None` when the archived point recorded none) and an optional
+`availability`. Dates are `YYYY-MM-DD`; the window may span at most 366 days.
+
+```rust
+use shopsavvy_sdk::{Client, Result};
+
+#[tokio::main]
+async fn main() -> Result<()> {
+    let client = Client::new("ss_live_your_api_key_here")?;
+
+    // Optionally pass Some("amazon.com") to restrict to one retailer.
+    let history = client
+        .get_price_history("012345678901", "2024-01-01", "2024-01-31", None, None)
+        .await?;
+
+    for product in &history.data {
+        println!("{}", product.product.title);
+        for offer in &product.offers {
+            let retailer = offer.retailer.as_deref().unwrap_or("unknown");
+            if let Some(low) = offer.history.iter().map(|p| p.price).reduce(f64::min) {
+                println!("  {retailer}: {} points, low ${low:.2}", offer.history.len());
+            }
+            for point in &offer.history {
+                println!(
+                    "    {} ${:.2} {} {}",
+                    point.timestamp,
+                    point.price,
+                    point.currency.as_deref().unwrap_or("?"),
+                    point.availability.as_deref().unwrap_or("")
+                );
+            }
+        }
+    }
+
+    println!("Credits used: {}", history.credits_used());
+    Ok(())
+}
+```
+
 ## 🚀 Production Deployment
 
 ### High-Performance Web Service with Axum
@@ -338,7 +382,7 @@ async fn compare_retailer_prices(client: &Client, identifier: &str) -> Result<()
 ```rust
 // Cargo.toml
 [dependencies]
-shopsavvy-sdk = "1.0.0"
+shopsavvy-sdk = "1.4"
 axum = "0.7"
 tokio = { version = "1.0", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
@@ -699,7 +743,7 @@ async fn main() -> Result<()> {
 crate-type = ["cdylib"]
 
 [dependencies]
-shopsavvy-sdk = "1.0.0"
+shopsavvy-sdk = "1.4"
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
 js-sys = "0.3"
