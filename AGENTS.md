@@ -58,6 +58,6 @@ cargo clippy -- -D warnings
 - Never hardcode a key in an example; use `SHOPSAVVY_API_KEY`.
 - Don't invent endpoints, parameters or response fields. If it isn't in the API docs or OpenAPI spec, it doesn't exist yet.
 - Don't put plan prices, plan names, dollar amounts or credit costs in the README; link to https://shopsavvy.com/data and https://shopsavvy.com/data/documentation instead.
-- Don't add claims about scale, uptime or customers (no "99.9% uptime", "trusted by", retailer or product counts). The approved wording is "tens of thousands of retailers" and "tens of millions of products".
+- Don't add claims about scale, uptime or customers (no "99.9% uptime", "trusted by", retailer or product counts). The approved wording is "tens of thousands of retailers" and "30M+ products".
 - Don't publish a release (crates.io) from an agent session. Prepare the version bump and changelog; a maintainer publishes.
 - Don't change public method names or signatures without a deprecation path; other people's code depends on them.

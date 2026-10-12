@@ -1,7 +1,7 @@
 //! # ShopSavvy Rust SDK
 //!
 //! Official Rust SDK for the ShopSavvy Data API - Access product data, pricing information,
-//! and price history across thousands of retailers and millions of products.
+//! and price history across tens of thousands of retailers and 30M+ products.
 //!
 //! ## Quick Start
 //!

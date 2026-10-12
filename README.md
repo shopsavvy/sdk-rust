@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Documentation](https://img.shields.io/badge/docs-shopsavvy.com-blue)](https://shopsavvy.com/data/documentation)
 
-Official Rust SDK for the [ShopSavvy Data API](https://shopsavvy.com/data). Access comprehensive product data, real-time pricing, and historical price trends across **tens of thousands of retailers** and **tens of millions of products**. Built for **high-performance**, **async/await**, and **zero-cost abstractions**.
+Official Rust SDK for the [ShopSavvy Data API](https://shopsavvy.com/data). Access comprehensive product data, real-time pricing, and historical price trends across **tens of thousands of retailers** and **30M+ products**. Built for **high-performance**, **async/await**, and **zero-cost abstractions**.
 
 ## ⚡ 30-Second Quick Start
 
