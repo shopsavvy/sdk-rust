@@ -132,7 +132,7 @@ use std::collections::HashMap;
 async fn lookup_multiple_products() -> Result<()> {
     let client = Client::new("ss_live_your_api_key_here")?;
     
-    // Process up to 100 products at once (Pro plan)
+    // Process up to 100 products per request
     let identifiers = vec![
         "012345678901".to_string(),
         "B08N5WRWNW".to_string(), 
@@ -1178,24 +1178,18 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🏢 About ShopSavvy
+## About ShopSavvy
 
-**ShopSavvy** is the world's first mobile shopping app, helping consumers find the best deals since 2008. With over **40 million downloads** and millions of active users, ShopSavvy has saved consumers billions of dollars.
+ShopSavvy has been comparing prices since 2008, and the app has 40M+ downloads. The ShopSavvy Data API serves the same product and price data over REST: send a barcode (UPC/EAN/ISBN), ASIN, product URL, model number or MPN, and get back the product record, current offers from tens of thousands of retailers, and price history back to 2011 (dense from 2019).
 
-### Our Data API Powers:
-- 🛒 **E-commerce platforms** with competitive intelligence  
-- 📊 **Market research** with real-time pricing data
-- 🏪 **Retailers** with inventory and pricing optimization
-- 📱 **Mobile apps** with product lookup and price comparison
-- 🤖 **Business intelligence** with automated price monitoring
+- **Lookup by any identifier**: barcode, ASIN, URL, model number, MPN or ShopSavvy ID, up to 100 per request
+- **Current offers**: price, availability, condition, seller and when each offer was last seen
+- **Price history**: quality-filtered price points per retailer over any date range
+- **Scheduled refreshes**: hourly, daily or weekly re-checks for the products you care about, at retailers that can be re-checked through an official retailer API (others update as ShopSavvy sees them)
+- **JSON or CSV** responses, with credits used and remaining on every response
+- **Open-source SDKs in 10 languages**: Python, TypeScript, Go, Rust, Java, Kotlin, Swift, PHP, Ruby and C#
 
-### Why Choose ShopSavvy Data API?
-- ✅ **Trusted by millions** - Proven at scale since 2008
-- ✅ **Comprehensive coverage** - 1000+ retailers, millions of products  
-- ✅ **Real-time accuracy** - Fresh data updated continuously
-- ✅ **Developer-friendly** - Easy integration, great documentation
-- ✅ **Reliable infrastructure** - 99.9% uptime, enterprise-grade
-- ✅ **Flexible pricing** - Plans for every use case and budget
+Plans and the 14-day Starter trial are at [shopsavvy.com/data](https://shopsavvy.com/data); full reference at [shopsavvy.com/data/documentation](https://shopsavvy.com/data/documentation).
 
 ### Perfect for Rust Development:
 - 🚀 **Zero-cost abstractions** - Maximum performance with minimal overhead
