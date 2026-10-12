@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Documentation](https://img.shields.io/badge/docs-shopsavvy.com-blue)](https://shopsavvy.com/data/documentation)
 
-Official Rust SDK for the [ShopSavvy Data API](https://shopsavvy.com/data). Access comprehensive product data, real-time pricing, and historical price trends across **thousands of retailers** and **millions of products**. Built for **high-performance**, **async/await**, and **zero-cost abstractions**.
+Official Rust SDK for the [ShopSavvy Data API](https://shopsavvy.com/data). Access comprehensive product data, real-time pricing, and historical price trends across **tens of thousands of retailers** and **tens of millions of products**. Built for **high-performance**, **async/await**, and **zero-cost abstractions**.
 
 ## ⚡ 30-Second Quick Start
 
@@ -378,8 +378,8 @@ async fn main() -> Result<()> {
 ### Scheduled Refresh
 
 Schedule products to be refreshed hourly, daily or weekly, optionally limited to one
-retailer domain. Scheduling costs 1 credit per product found; listing and unscheduling are
-free.
+retailer domain. Credit costs for each call are in the
+[API documentation](https://shopsavvy.com/data/documentation).
 
 ```rust
 use shopsavvy_sdk::{Client, MonitoringFrequency, Result};
@@ -1189,7 +1189,7 @@ ShopSavvy has been comparing prices since 2008, and the app has 40M+ downloads. 
 - **JSON or CSV** responses, with credits used and remaining on every response
 - **Open-source SDKs in 10 languages**: Python, TypeScript, Go, Rust, Java, Kotlin, Swift, PHP, Ruby and C#
 
-Plans and the 14-day Starter trial are at [shopsavvy.com/data](https://shopsavvy.com/data); full reference at [shopsavvy.com/data/documentation](https://shopsavvy.com/data/documentation).
+Plans and the 14-day trial are at [shopsavvy.com/data](https://shopsavvy.com/data); full reference at [shopsavvy.com/data/documentation](https://shopsavvy.com/data/documentation).
 
 ### Perfect for Rust Development:
 - 🚀 **Zero-cost abstractions** - Maximum performance with minimal overhead
