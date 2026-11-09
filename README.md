@@ -12,7 +12,7 @@ Official Rust SDK for the [ShopSavvy Data API](https://shopsavvy.com/data). Acce
 ```toml
 # Cargo.toml
 [dependencies]
-shopsavvy-sdk = "1.4"
+shopsavvy-sdk = "1.5"
 tokio = { version = "1.0", features = ["full"] }
 ```
 
@@ -44,7 +44,7 @@ async fn main() -> Result<()> {
 
 ```toml
 [dependencies]
-shopsavvy-sdk = "1.4"
+shopsavvy-sdk = "1.5"
 tokio = { version = "1.0", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }  # For custom serialization
 ```
@@ -53,7 +53,7 @@ serde = { version = "1.0", features = ["derive"] }  # For custom serialization
 
 ```toml
 [dependencies]
-shopsavvy-sdk = { version = "1.4", features = ["metrics", "tracing"] }
+shopsavvy-sdk = { version = "1.5", features = ["metrics", "tracing"] }
 ```
 
 ### Get Your API Key
@@ -422,7 +422,7 @@ async fn manage_schedule(client: &Client) -> Result<()> {
 ```rust
 // Cargo.toml
 [dependencies]
-shopsavvy-sdk = "1.4"
+shopsavvy-sdk = "1.5"
 axum = "0.7"
 tokio = { version = "1.0", features = ["full"] }
 serde = { version = "1.0", features = ["derive"] }
@@ -783,7 +783,7 @@ async fn main() -> Result<()> {
 crate-type = ["cdylib"]
 
 [dependencies]
-shopsavvy-sdk = "1.4"
+shopsavvy-sdk = "1.5"
 wasm-bindgen = "0.2"
 wasm-bindgen-futures = "0.4"
 js-sys = "0.3"
