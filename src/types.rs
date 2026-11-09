@@ -182,6 +182,35 @@ pub struct ProductWithOffers {
     pub mpn: Option<String>,
     pub color: Option<String>,
     pub offers: Vec<Offer>,
+    /// User-collected in-store shelf prices read from shoppers' scanned receipts.
+    /// `#[serde(default)]`: empty when none are on file or an older server omits the key.
+    #[serde(default)]
+    pub in_store_prices: Vec<InStorePrice>,
+}
+
+/// A shelf price a physical store charged on a given day, read from a shopper's scanned
+/// receipt. `source` is always `"user-collected"`. It says what the store sold the product for
+/// that day, not that it is in stock now; nothing about the shopper is included.
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct InStorePrice {
+    pub source: String,
+    pub retailer: Option<String>,
+    #[serde(default)]
+    pub store: InStoreLocation,
+    /// Unit shelf price paid (the median when several receipts from the store agree).
+    pub price: f64,
+    pub currency: String,
+    /// YYYY-MM-DD date of the most recent receipt behind the price.
+    pub observed_on: Option<String>,
+    pub timestamp: Option<String>,
+}
+
+/// The store an [`InStorePrice`] was charged at.
+#[derive(Debug, Deserialize, Serialize, Clone, Default)]
+pub struct InStoreLocation {
+    pub address: Option<String>,
+    pub latitude: Option<f64>,
+    pub longitude: Option<f64>,
 }
 
 /// Offer returned by `get_price_history()`, i.e. one carrying its `history` array.

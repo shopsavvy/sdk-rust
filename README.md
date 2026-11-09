@@ -881,6 +881,17 @@ impl ShopSavvyWasm {
 // }
 ```
 
+### In-Store Prices (user-collected)
+
+Each product from the current-offers call also carries `in_store_prices`: shelf prices physical stores charged, read from receipts ShopSavvy app users scanned. Every entry is labeled `source: "user-collected"` and has the retailer, the store's address and coordinates, the price and the receipt date (`observed_on`). It is a price on that day, not current stock, and says nothing about the shopper. Empty when none are on file.
+
+```rust
+let response = client.get_current_offers("011110838360", None, None).await?;
+for in_store in &response.data[0].in_store_prices {
+    println!("{:?} ({:?}): ${} on {:?}", in_store.retailer, in_store.store.address, in_store.price, in_store.observed_on);
+}
+```
+
 ## Error Handling
 
 The SDK provides comprehensive error handling with Result types and custom error variants:

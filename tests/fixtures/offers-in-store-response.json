@@ -1,0 +1,38 @@
+{
+  "success": true,
+  "data": [
+    {
+      "title": "Kroger 2% Reduced Fat Milk, 1 gal",
+      "shopsavvy": "products/test-in-store-fixture",
+      "barcode": "011110838360",
+      "offers": [
+        {
+          "id": "offer-fixture-1",
+          "retailer": "Walmart",
+          "price": 3.98,
+          "currency": "USD",
+          "availability": "in",
+          "condition": "new",
+          "condition_grade": null,
+          "seller": null,
+          "is_marketplace": false,
+          "URL": "https://www.walmart.com/ip/fixture",
+          "timestamp": "2026-11-08T12:00:00.000Z",
+          "history": []
+        }
+      ],
+      "in_store_prices": [
+        {
+          "source": "user-collected",
+          "retailer": "Kroger",
+          "store": { "address": "1014 Vine St, Cincinnati, OH 45202, USA", "latitude": 39.1086, "longitude": -84.5154 },
+          "price": 3.49,
+          "currency": "USD",
+          "observed_on": "2026-11-07",
+          "timestamp": "2026-11-08T14:02:11.000Z"
+        }
+      ]
+    }
+  ],
+  "meta": { "request_id": "fixture", "credits_used": 3, "credits_remaining": 997, "rate_limit_remaining": 999 }
+}
